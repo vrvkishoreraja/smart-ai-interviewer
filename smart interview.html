@@ -1,0 +1,875 @@
+<!-- Smart AI Interviewer - Local Web App (can be opened in any browser) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart AI Interviewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
+    ::-webkit-scrollbar-thumb { background: rgba(150, 150, 150, 0.3); border-radius: 3px; }
+    .chat-bubble { animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-200 bg-white px-6 py-4 sticky top-0 z-30 shadow-sm flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-md">
+        AI
+      </div>
+      <div>
+        <h1 class="text-base font-bold tracking-tight text-slate-900">Smart AI Interviewer</h1>
+        <p class="text-xs text-slate-500">Role-tailored questions &bull; Dynamic evaluation &bull; Instant feedback on 'end'</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="sessionStatusBadge" class="hidden px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-300">
+        Active Session
+      </span>
+      <button id="endInterviewBtn" onclick="triggerEndInterview()" class="hidden px-3.5 py-1.5 text-xs font-semibold bg-rose-500 hover:bg-rose-600 text-white rounded-lg transition-colors shadow-sm">
+        End &amp; Get Feedback (or type 'end')
+      </button>
+      <button id="newSessionBtn" onclick="resetToSetup()" class="hidden px-3 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 border border-slate-300 transition-colors">
+        New Interview
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 flex flex-col">
+
+    <!-- STEP 1: SETUP SCREEN -->
+    <section id="setupSection" class="my-auto max-w-2xl mx-auto w-full bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-100 text-blue-700 mb-3 text-2xl">
+          🎯
+        </div>
+        <h2 class="text-xl font-bold text-slate-900">Configure Your Interview</h2>
+        <p class="text-sm text-slate-500 mt-1">Select your target role and seniority. The AI will ask progressive questions and evaluate your performance when you type 'end'.</p>
+      </div>
+
+      <div class="space-y-5">
+        <!-- Target Role -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Target Job Role</label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-3" id="rolePillContainer">
+            <button type="button" onclick="selectRole('Software Engineer')" class="role-pill px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl text-left hover:border-blue-500 transition-colors bg-white">
+              💻 Software Engineer
+            </button>
+            <button type="button" onclick="selectRole('Frontend Developer')" class="role-pill px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl text-left hover:border-blue-500 transition-colors bg-white">
+              🎨 Frontend Developer
+            </button>
+            <button type="button" onclick="selectRole('Data Scientist')" class="role-pill px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl text-left hover:border-blue-500 transition-colors bg-white">
+              📊 Data Scientist / ML
+            </button>
+            <button type="button" onclick="selectRole('DevOps Engineer')" class="role-pill px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl text-left hover:border-blue-500 transition-colors bg-white">
+              ☁️ DevOps / Cloud
+            </button>
+            <button type="button" onclick="selectRole('Product Manager')" class="role-pill px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl text-left hover:border-blue-500 transition-colors bg-white">
+              🚀 Product Manager
+            </button>
+            <button type="button" onclick="selectRole('Custom')" class="role-pill px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl text-left hover:border-blue-500 transition-colors bg-white">
+              ✨ Other / Custom Role
+            </button>
+          </div>
+          <input type="text" id="customRoleInput" placeholder="Enter target role (e.g. iOS Developer, Cyber Security, QA Engineer)..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" value="Software Engineer">
+        </div>
+
+        <!-- Seniority Level -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Seniority Level</label>
+          <div class="grid grid-cols-3 gap-3">
+            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+              <input type="radio" name="level" value="Junior" class="text-blue-600 focus:ring-blue-500">
+              <div>
+                <div class="text-xs font-bold text-slate-800">Junior</div>
+                <div class="text-xs text-slate-500">0-2 years exp</div>
+              </div>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-blue-200 bg-blue-50/50 cursor-pointer transition-colors">
+              <input type="radio" name="level" value="Mid-Level" checked class="text-blue-600 focus:ring-blue-500">
+              <div>
+                <div class="text-xs font-bold text-slate-800">Mid-Level</div>
+                <div class="text-xs text-slate-500">2-5 years exp</div>
+              </div>
+            </label>
+            <label class="flex items-center gap-2.5 p-3 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition-colors">
+              <input type="radio" name="level" value="Senior" class="text-blue-600 focus:ring-blue-500">
+              <div>
+                <div class="text-xs font-bold text-slate-800">Senior / Lead</div>
+                <div class="text-xs text-slate-500">5+ years exp</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Optional Gemini API Key -->
+        <div class="pt-2">
+          <details class="text-xs text-slate-500 group">
+            <summary class="cursor-pointer font-medium hover:text-slate-800 flex items-center gap-1.5 select-none">
+              <span>⚙️ Advanced: Optional Gemini API Key (for Live LLM evaluation)</span>
+            </summary>
+            <div class="mt-3 p-3 rounded-xl border border-slate-200 bg-slate-50">
+              <p class="text-xs mb-2 text-slate-600">Leave empty to use the built-in Smart Evaluation Engine with comprehensive questions and rubrics. Or paste a Gemini API key for dynamic LLM generation.</p>
+              <input type="password" id="geminiApiKey" placeholder="AIzaSy..." class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-mono">
+            </div>
+          </details>
+        </div>
+
+        <!-- Start Button -->
+        <button onclick="startInterview()" class="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+          <span>Start Interview Session</span>
+          <span class="text-base">&rarr;</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- STEP 2: ACTIVE INTERVIEW CHAT SCREEN -->
+    <section id="interviewSection" class="hidden flex-1 flex flex-col h-[calc(100vh-140px)]">
+      <!-- Progress Bar & Info Banner -->
+      <div class="bg-white border border-slate-200 rounded-xl px-4 py-3 mb-3 flex items-center justify-between text-xs shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-slate-800" id="interviewMeta">Role: Software Engineer</span>
+          <span class="text-slate-400">&bull;</span>
+          <span class="text-blue-600 font-medium" id="questionCategoryPill">Core Fundamentals</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-slate-500" id="progressCount">Question 1 of 4</span>
+          <div class="w-24 bg-slate-200 rounded-full h-2 overflow-hidden">
+            <div id="progressBar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 25%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages Thread -->
+      <div id="messagesContainer" class="flex-1 overflow-y-auto space-y-4 p-4 rounded-xl bg-white border border-slate-200 mb-3 shadow-inner"></div>
+
+      <!-- Answer Input Area -->
+      <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm">
+        <div class="flex items-center justify-between text-xs text-slate-500 mb-1.5 px-1">
+          <span>💡 Tip: Structure your answer clearly. Type <strong>end</strong> when ready to see your evaluation.</span>
+          <span id="charCount">0 words</span>
+        </div>
+        <div class="flex gap-2">
+          <textarea id="answerInput" rows="3" placeholder="Type your answer here... (or type 'end' to finish interview and get feedback)" class="flex-1 px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="updateWordCount(this)" onkeydown="handleKeyDown(event)"></textarea>
+          <div class="flex flex-col gap-2 justify-end">
+            <button onclick="submitAnswer()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs rounded-lg transition-colors shadow-sm flex items-center justify-center gap-1.5">
+              <span>Submit</span>
+              <span>&crarr;</span>
+            </button>
+            <button onclick="triggerEndInterview()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-medium rounded-lg border border-rose-200 transition-colors">
+              End Now
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 3: FEEDBACK & IMPROVEMENT REPORT -->
+    <section id="feedbackSection" class="hidden flex-1 overflow-y-auto space-y-6 pb-12">
+      <!-- Top Scorecard Header -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2" id="verdictBadge">
+              Strong Hire
+            </div>
+            <h2 class="text-2xl font-extrabold text-slate-900" id="reportTitle">Candidate Evaluation Report</h2>
+            <p class="text-xs text-slate-500 mt-1" id="reportMeta">Role: Software Engineer | Seniority: Mid-Level | Date: Today</p>
+            <p class="text-sm text-slate-700 mt-3 max-w-2xl leading-relaxed" id="reportSummary">
+              Demonstrated strong technical breadth with structured thinking.
+            </p>
+          </div>
+
+          <div class="flex flex-col items-center justify-center bg-slate-50 p-5 rounded-2xl border border-slate-200 min-w-[140px] shadow-sm">
+            <div class="text-3xl font-black text-blue-600" id="overallScoreDisplay">8.4</div>
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mt-0.5">Overall / 10</div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-200" id="pillarContainer"></div>
+      </div>
+
+      <!-- Strengths and Improvements Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">✓</span>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Key Strengths Demonstrated</h3>
+          </div>
+          <ul class="space-y-3 text-xs text-slate-700" id="strengthsList"></ul>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">▲</span>
+            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Where You Should Improve</h3>
+          </div>
+          <ul class="space-y-3 text-xs text-slate-700" id="improvementsList"></ul>
+        </div>
+      </div>
+
+      <!-- Detailed Question by Question Deep Dive -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+          <span>🔍</span>
+          <span>Question-by-Question Deep Dive &amp; Model Answers</span>
+        </h3>
+        <div class="space-y-5" id="questionsBreakdownContainer"></div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+        <button onclick="downloadReport()" class="px-4 py-2.5 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs font-semibold flex items-center gap-2 transition-colors">
+          <span>💾 Download Markdown Report</span>
+        </button>
+        <button onclick="resetToSetup()" class="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-colors">
+          Start Another Role Interview &rarr;
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Copy identical logic from the engine
+    const ROLE_BANKS = {
+      "software engineer": [
+        {
+          category: "Core Fundamentals & Concurrency",
+          question: "Can you explain the difference between processes and threads, and how memory and concurrency are managed between them?",
+          keywords: ["memory", "shared", "stack", "heap", "isolation", "overhead", "context switch", "race condition", "lock", "thread", "process"],
+          model_answer: "Processes are independent execution units with their own isolated memory address space (heap, stack, code). Threads exist within a process and share its heap and code segment, but each maintains its own stack and registers. Concurrency with threads is lightweight but requires synchronization primitives (mutexes, semaphores) to avoid race conditions. Processes provide fault isolation but have higher IPC (Inter-Process Communication) and context-switching overhead."
+        },
+        {
+          category: "Practical Scenario & Debugging",
+          question: "Imagine your production backend service suddenly experiences a spike in API latency from 50ms to 3000ms, but CPU usage remains below 20%. How would you isolate and diagnose the root cause?",
+          keywords: ["database", "connection pool", "io", "bottleneck", "external api", "lock", "thread pool", "logs", "distributed tracing", "profiler", "network"],
+          model_answer: "Low CPU with high latency strongly suggests an I/O wait, connection starvation, or thread blocking rather than computational bottlenecks. I would check distributed traces (OpenTelemetry/Jaeger) to identify slow downstream spans; inspect database connection pool saturation, slow queries, or deadlocks; verify third-party HTTP timeouts; and review thread dump metrics to see if threads are waiting on synchronization locks or socket reads."
+        },
+        {
+          category: "System Design & Optimization",
+          question: "How would you design an idempotent payment processing API to ensure users are never charged twice when network retries occur?",
+          keywords: ["idempotency key", "database", "unique constraint", "distributed lock", "atomic", "redis", "status", "retry", "transaction"],
+          model_answer: "Clients must pass a unique client-generated Idempotency-Key in header. The server acquires a lock or executes an atomic insert into an idempotency records table with a UNIQUE constraint. If the key already exists and is 'PROCESSING', subsequent calls return HTTP 409 or wait. If already 'SUCCEEDED', it returns the cached response directly without re-charging. Database transactions ensure payment status and ledger updates commit together atomically."
+        },
+        {
+          category: "Behavioral & Technical Trade-offs",
+          question: "Tell me about a time you had to push back on a product feature or deadline due to technical debt, security, or architectural risks. How did you handle the situation?",
+          keywords: ["stakeholder", "trade-off", "risk", "compromise", "communication", "impact", "alternative", "data", "timeline"],
+          model_answer: "A strong answer uses the STAR method (Situation, Task, Action, Result). It highlights translating technical risk into business impact (e.g., risk of data loss, downtime cost, or compliance liability), presenting concrete phased alternatives (e.g., MVP release with planned follow-up sprint), aligning with product stakeholders, and delivering the feature safely without alienating the team."
+        }
+      ],
+      "frontend developer": [
+        {
+          category: "Core Fundamentals & Browser Internals",
+          question: "Can you explain how the browser Critical Rendering Path works from receiving HTML to painting pixels, and how you optimize it?",
+          keywords: ["dom", "cssom", "render tree", "layout", "reflow", "paint", "composite", "async", "defer", "critical css"],
+          model_answer: "The browser parses HTML to construct the DOM, and CSS to construct the CSSOM. These combine into the Render Tree, followed by Layout (computing geometry and dimensions) and Painting (filling pixels onto layers), and finally Compositing. Optimization includes minimizing render-blocking CSS/JS using defer/async, code splitting, inlining critical CSS, minimizing layout thrashing (avoiding forced synchronous reflows), and leveraging GPU compositing (transform/opacity)."
+        },
+        {
+          category: "State Management & Reactivity",
+          question: "In a large single-page application (React/Vue/Angular), what strategies do you use to eliminate unnecessary component re-renders and keep UI interactions at 60fps?",
+          keywords: ["memo", "usecallback", "usememo", "virtualization", "profiler", "immutable", "state colocation", "props", "debounce"],
+          model_answer: "Colocate state as close to leaves as possible rather than storing everything in global state; use memoization (React.memo, useMemo, useCallback) with proper dependency arrays; implement list virtualization (e.g. react-window) for long lists; debounce high-frequency events like search or window resizing; use the React DevTools Profiler to identify culprit renders; and ensure stable object/array references in props."
+        },
+        {
+          category: "Architecture & Modern Standards",
+          question: "How do you evaluate and implement Core Web Vitals (LCP, INP, CLS) improvements on an e-commerce or content-heavy web app?",
+          keywords: ["lcp", "inp", "cls", "image optimization", "preload", "fonts", "aspect ratio", "web workers", "main thread"],
+          model_answer: "For LCP: preload hero images, use modern formats (AVIF/WebP) with responsive srcset, and avoid client-side rendering bottlenecks. For INP: break long tasks using scheduler.yield() or requestIdleCallback, offload heavy calculations to Web Workers, and keep event handlers lean. For CLS: reserve dimensions on images/ads using explicit width/height or aspect-ratio CSS, and use font-display: optional or size-adjust."
+        },
+        {
+          category: "Accessibility & WCAG",
+          question: "How do you ensure a complex custom UI widget (like an accessible modal or combobox) conforms strictly to WCAG AA guidelines?",
+          keywords: ["aria", "keyboard", "focus trap", "screen reader", "tabindex", "escape", "contrast", "wcag", "semantic"],
+          model_answer: "Ensure full keyboard navigability (Tab, Shift+Tab, Arrow keys, Enter, Space, Escape to close). For modals, manage a focus trap to prevent tabbing into background elements, set role='dialog', aria-modal='true', and aria-labelledby. Restore focus to the trigger button upon closing. Ensure color contrast ratios meet at least 4.5:1 for normal text, and test using screen readers (NVDA/VoiceOver) and automated accessibility linters (axe-core)."
+        }
+      ],
+      "data scientist": [
+        {
+          category: "Statistical Modeling & Imbalance",
+          question: "How do you identify and handle severe class imbalance in a classification problem where the positive class is less than 1% of the data?",
+          keywords: ["smote", "undersampling", "oversampling", "pr-auc", "f1", "precision", "recall", "cost-sensitive", "class weight", "stratified"],
+          model_answer: "Avoid accuracy as a metric; use PR-AUC (Precision-Recall Area Under Curve), F1-score, or cost-sensitive matrices. Techniques include resampling: stratified K-Fold split, synthetic minority oversampling (SMOTE) on train set only, or random under-sampling. Algorithmic adjustments include class weighting (scale_pos_weight in XGBoost, balanced class weights). Threshold tuning: calibrate predicted probabilities and choose the decision threshold that maximizes business utility."
+        },
+        {
+          category: "Feature Engineering & Leakage",
+          question: "What is data leakage in machine learning pipelines, what are common sneaky examples of it, and how do you guarantee prevention?",
+          keywords: ["data leakage", "train test split", "preprocessing", "cross validation", "target leakage", "pipeline", "time series"],
+          model_answer: "Data leakage occurs when information from outside the training dataset is inadvertently used to create the model, leading to overly optimistic evaluation that fails in production. Common sneaky examples include fitting scalers/imputers before splitting train/val, using future features in time-series data, or feature engineering across grouped entities where target signals bleed. Prevention: strictly fit transformers inside scikit-learn Pipelines on training splits only, and use time-based rolling splits for temporal data."
+        },
+        {
+          category: "Business Translation & Metric Trade-offs",
+          question: "A business stakeholder asks why you chose an ensemble model with 88% precision over a simpler linear model with 84% accuracy. How do you explain this decision quantitatively and qualitatively?",
+          keywords: ["false positive", "business cost", "precision", "recall", "explainability", "shap", "roi", "trade-off", "value"],
+          model_answer: "Frame the difference in terms of cost and business risk. If false positives are expensive (e.g. fraud alerts freezing legitimate accounts or spamming VIP customers), high precision directly protects revenue and user trust. Explain that 84% accuracy could be worse than a naive baseline if classes are imbalanced. Provide feature importance or SHAP explanations to demonstrate that the ensemble captures non-linear interactions without sacrificing decision interpretability."
+        },
+        {
+          category: "MLOps & Concept Drift",
+          question: "How do you detect and mitigate data drift and concept drift in a model deployed in production?",
+          keywords: ["data drift", "concept drift", "ks test", "psi", "monitoring", "retraining", "ground truth", "evidently", "baseline"],
+          model_answer: "Data drift (covariate shift) is when input distributions change (P(X) changes); concept drift is when the relationship between features and target changes (P(Y|X) changes). Detection: monitor statistical divergence metrics like Population Stability Index (PSI), Kolmogorov-Smirnov test, or Wasserstein distance between inference batches and training baseline. Mitigation: establish automated alerts, maintain continuous shadow evaluation against incoming ground-truth labels, and trigger scheduled or performance-gated retraining pipelines."
+        }
+      ],
+      "devops engineer": [
+        {
+          category: "Infrastructure as Code & Blast Radius",
+          question: "How do you structure a production-grade Terraform pipeline across multiple environments (Dev, Staging, Prod) to prevent drift and blast radius?",
+          keywords: ["state file", "remote backend", "s3", "gcs", "lock", "modules", "blast radius", "terragrunt", "workspaces", "drift"],
+          model_answer: "Use isolated state files per environment and per subsystem (e.g. networking, databases, compute) using remote backends with state locking (S3 + DynamoDB or GCS). Avoid a monolithic state file to minimize blast radius. Reuse tested versioned Terraform modules. Enforce CI/CD automation where `terraform plan` is reviewed on PRs and `terraform apply` executes via pipeline with approval gates. Implement scheduled drift detection runs to catch manual console changes."
+        },
+        {
+          category: "Kubernetes & Troubleshooting",
+          question: "A pod in Kubernetes enters a CrashLoopBackOff state. Walk me through your step-by-step diagnostic workflow to fix it.",
+          keywords: ["kubectl describe", "kubectl logs", "exit code", "oomkilled", "liveness", "readiness", "events", "configmap", "secret"],
+          model_answer: "1. Run `kubectl describe pod <name>` to inspect Events, recent state, termination reason, and exit code. 2. If exit code is 137 (OOMKilled), increase container memory limits. 3. If exit code is 0 or 1, check application logs with `kubectl logs <name> --previous` to see runtime crashes or unhandled exceptions. 4. Verify environment variables, mounted ConfigMaps, and Secrets. 5. Inspect liveness/readiness probes to ensure they aren't failing due to slow application boot times."
+        },
+        {
+          category: "Deployments & Traffic Routing",
+          question: "Explain how you design a Blue-Green vs Canary deployment strategy for high-traffic microservices, and what metrics trigger an automated rollback.",
+          keywords: ["canary", "blue green", "ingress", "istio", "metrics", "error rate", "latency", "rollback", "prometheus", "slo"],
+          model_answer: "Blue-Green deploys an entire identical new environment (Green) and switches router/ingress pointer instantaneously once validated; easy rollback but requires 2x resource headroom. Canary routes a small fraction (e.g., 2% -> 10% -> 50%) of live traffic to the new version using service mesh (Istio) or ingress controllers (Argo Rollouts). Automated rollback is triggered if 5xx error rate spikes above threshold, P99 latency degrades past SLO, or synthetic health checks fail."
+        },
+        {
+          category: "Incident Management & Reliability",
+          question: "Describe your incident response framework during a major SEV-1 production outage, from initial alert to post-mortem.",
+          keywords: ["incident commander", "communication", "mitigation", "post-mortem", "blameless", "timeline", "action items", "pagerduty"],
+          model_answer: "Designate an Incident Commander (IC) to lead coordination, a Tech Lead to drive diagnostics, and a Communications Lead to update status pages. Priority is mitigation first (rollback, failover, traffic throttling) rather than root-cause fixing in place. Maintain an active incident timeline. Once resolved, conduct a blameless post-mortem within 48 hours to identify contributing factors, update runbooks, and assign preventative action items with explicit owners."
+        }
+      ],
+      "product manager": [
+        {
+          category: "Product Strategy & Prioritization",
+          question: "How do you prioritize competing feature requests from enterprise sales, user feedback, and technical engineering debt?",
+          keywords: ["framework", "rice", "ice", "business goals", "impact", "effort", "okr", "trade-off", "sales", "debt"],
+          model_answer: "Anchor decisions on core company OKRs and product vision. Use quantitative prioritization frameworks like RICE (Reach, Impact, Confidence, Effort) to calibrate objectively. Categorize requests into strategic themes: allocate capacity percentages (e.g., 60% customer value & features, 20% technical debt & stability, 20% growth/sales bets). Validate sales asks against broader market demand to avoid building one-off custom features that don't scale."
+        },
+        {
+          category: "Metrics & Product Health",
+          question: "You launch a new onboarding flow and observe that sign-ups increased by 15%, but Day-30 retention dropped by 8%. How do you analyze and resolve this problem?",
+          keywords: ["funnel", "cohort analysis", "intent", "activation", "quality", "retention", "user interviews", "experiment"],
+          model_answer: "The increased sign-ups likely lowered the barrier to entry, attracting lower-intent users or skipping key activation milestones needed for long-term habit formation. I would perform cohort analysis comparing retained vs churned users to see where drop-offs happen in the product lifecycle; evaluate feature adoption; interview churning users to discover unfulfilled expectations; and test introducing progressive profiling or guided onboarding steps that boost activation."
+        },
+        {
+          category: "Cross-Functional Alignment",
+          question: "Your engineering lead tells you an agreed-upon MVP cannot be delivered on schedule unless scope is cut in half. How do you approach this conversation and align stakeholders?",
+          keywords: ["mvp", "scope", "must have", "negotiation", "timeline", "user value", "trade-off", "stakeholders"],
+          model_answer: "Empathize and collaborate rather than pushing back blindly. Ask the tech lead to break down the architectural bottlenecks. Apply the MoSCoW method to identify the true non-negotiable core hypothesis of the MVP (what is essential to deliver user value). Trim nice-to-haves and defer edge-case automation to phase 2. Communicate proactively to executive stakeholders with the revised scope, trade-off rationale, and phased release plan."
+        },
+        {
+          category: "Customer Discovery & Research",
+          question: "Walk me through how you conduct customer discovery to validate a problem before writing a single line of code or PRD.",
+          keywords: ["interviews", "problem validation", "open-ended", "user research", "mom test", "pain points", "willingness to pay"],
+          model_answer: "Focus on the user's current behaviors and actual past pain points rather than asking hypothetical questions (following 'The Mom Test' principles). Ask open-ended questions like 'How do you currently solve X?' and 'What is the most frustrating part of that process?'. Look for evidence of existing makeshift workarounds or budget spend. Synthesize findings into key personas and job-to-be-done statements, and test low-fidelity prototypes or landing page tests before writing specs."
+        }
+      ]
+    };
+
+    let currentRole = "Software Engineer";
+    let currentLevel = "Mid-Level";
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let interviewHistory = [];
+    let apiKey = "";
+    let lastGeneratedFeedback = null;
+
+    function selectRole(roleName) {
+      if (roleName === 'Custom') {
+        document.getElementById('customRoleInput').value = '';
+        document.getElementById('customRoleInput').focus();
+      } else {
+        document.getElementById('customRoleInput').value = roleName;
+      }
+    }
+
+    function startInterview() {
+      const customVal = document.getElementById('customRoleInput').value.trim();
+      currentRole = customVal || "Software Engineer";
+      currentLevel = document.querySelector('input[name="level"]:checked')?.value || "Mid-Level";
+      apiKey = document.getElementById('geminiApiKey').value.trim();
+
+      const normRole = currentRole.toLowerCase();
+      let matchedBank = null;
+      for (const [key, qList] of Object.entries(ROLE_BANKS)) {
+        if (normRole.includes(key) || key.includes(normRole)) {
+          matchedBank = qList;
+          break;
+        }
+      }
+
+      if (matchedBank) {
+        questions = JSON.parse(JSON.stringify(matchedBank));
+      } else {
+        questions = [
+          {
+            category: `Core ${currentRole} Competencies`,
+            question: `As a ${currentRole}, what are the foundational principles, frameworks, and methodologies you rely on daily, and why are they critical to your workflow?`,
+            keywords: ["workflow", "best practices", "tools", "standards", "efficiency", "collaboration", "quality"],
+            model_answer: `In a ${currentRole} role, success relies on balancing foundational theoretical principles with robust, battle-tested tools. An expert explains their core technical framework, how they maintain high quality and consistency, and how their toolchain accelerates reliable outcomes.`
+          },
+          {
+            category: "Complex Problem Solving & Edge Cases",
+            question: `Describe a challenging, ambiguous problem you encountered in your work as a ${currentRole}. How did you dissect the root cause and deliver a resilient solution?`,
+            keywords: ["root cause", "analysis", "data", "trade-off", "debugging", "impact", "resolution"],
+            model_answer: "Demonstrates structured diagnostic thinking: establishing hypotheses, isolating variables using data or telemetry, testing systematically, implementing an enduring fix, and documenting lessons learned to prevent recurrence."
+          },
+          {
+            category: "Process, Architecture & Quality Standards",
+            question: `How do you structure and evaluate your deliverables for long-term scalability, maintainability, and team collaboration as a ${currentRole}?`,
+            keywords: ["scalability", "documentation", "testing", "maintainability", "modular", "reusable", "standards"],
+            model_answer: "Emphasizes modular design, clean separation of concerns, thorough documentation, automated validation gates, and adhering to industry standards so teammates can onboard and contribute seamlessly."
+          },
+          {
+            category: "Stakeholder Collaboration & Conflict",
+            question: "Can you describe a situation where you had a strong disagreement with a colleague or stakeholder regarding project or technical direction? How did you resolve it?",
+            keywords: ["communication", "listening", "objective", "compromise", "alignment", "data-driven", "outcome"],
+            model_answer: "Follows the STAR method, focusing on active listening, bringing objective metrics or user needs to the discussion, depersonalizing the conflict, and reaching an aligned decision that prioritized project success."
+          }
+        ];
+      }
+
+      currentQuestionIndex = 0;
+      interviewHistory = [];
+
+      document.getElementById('setupSection').classList.add('hidden');
+      document.getElementById('feedbackSection').classList.add('hidden');
+      document.getElementById('interviewSection').classList.remove('hidden');
+
+      document.getElementById('sessionStatusBadge').classList.remove('hidden');
+      document.getElementById('endInterviewBtn').classList.remove('hidden');
+      document.getElementById('newSessionBtn').classList.remove('hidden');
+
+      document.getElementById('interviewMeta').textContent = `Role: ${currentRole} (${currentLevel})`;
+      document.getElementById('messagesContainer').innerHTML = '';
+
+      appendMessage("ai", `👋 Welcome to your mock interview for <strong>${currentRole} (${currentLevel})</strong>.<br><br>I will ask you <strong>${questions.length} progressive questions</strong> covering core fundamentals, practical problem solving, architecture, and situational trade-offs.<br><br>Take your time to structure your answers thoroughly. At any time, you can type <strong>"end"</strong> in your answer box or click the red <strong>End & Get Feedback</strong> button to receive your comprehensive score and improvement analysis!`);
+
+      setTimeout(askCurrentQuestion, 500);
+    }
+
+    function askCurrentQuestion() {
+      if (currentQuestionIndex >= questions.length) {
+        finishAndEvaluate();
+        return;
+      }
+
+      const q = questions[currentQuestionIndex];
+      const qNum = currentQuestionIndex + 1;
+      
+      document.getElementById('questionCategoryPill').textContent = q.category;
+      document.getElementById('progressCount').textContent = `Question ${qNum} of ${questions.length}`;
+      const pct = Math.round((qNum / questions.length) * 100);
+      document.getElementById('progressBar').style.width = `${pct}%`;
+
+      appendMessage("ai", `
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-blue-100 text-blue-800">Question ${qNum} &bull; ${q.category}</span>
+          </div>
+          <p class="font-medium text-sm text-slate-800 leading-relaxed">${q.question}</p>
+        </div>
+      `);
+
+      document.getElementById('answerInput').value = '';
+      document.getElementById('answerInput').focus();
+      updateWordCount(document.getElementById('answerInput'));
+    }
+
+    function appendMessage(sender, htmlContent) {
+      const container = document.getElementById('messagesContainer');
+      const div = document.createElement('div');
+      div.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} chat-bubble`;
+
+      if (sender === 'ai') {
+        div.innerHTML = `
+          <div class="flex items-start gap-2.5 max-w-2xl">
+            <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex-shrink-0 flex items-center justify-center font-bold text-xs shadow-sm">
+              AI
+            </div>
+            <div class="bg-slate-100 text-slate-800 border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
+              ${htmlContent}
+            </div>
+          </div>
+        `;
+      } else {
+        div.innerHTML = `
+          <div class="flex items-start gap-2.5 max-w-2xl flex-row-reverse">
+            <div class="w-8 h-8 rounded-lg bg-slate-700 text-white flex-shrink-0 flex items-center justify-center font-bold text-xs shadow-sm">
+              You
+            </div>
+            <div class="bg-blue-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm leading-relaxed shadow-sm">
+              ${htmlContent}
+            </div>
+          </div>
+        `;
+      }
+
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitAnswer();
+      }
+    }
+
+    function updateWordCount(textarea) {
+      const text = textarea.value.trim();
+      const words = text ? text.split(/\s+/).length : 0;
+      document.getElementById('charCount').textContent = `${words} word${words === 1 ? '' : 's'}`;
+    }
+
+    function submitAnswer() {
+      const input = document.getElementById('answerInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      if (text.toLowerCase() === 'end') {
+        appendMessage("user", "<strong>end</strong>");
+        triggerEndInterview();
+        return;
+      }
+
+      appendMessage("user", text.replace(/\n/g, '<br>'));
+
+      const q = questions[currentQuestionIndex];
+      interviewHistory.push({
+        questionNum: currentQuestionIndex + 1,
+        category: q.category,
+        question: q.question,
+        answer: text,
+        keywords: q.keywords || [],
+        model_answer: q.model_answer || ""
+      });
+
+      currentQuestionIndex++;
+
+      if (currentQuestionIndex < questions.length) {
+        setTimeout(askCurrentQuestion, 600);
+      } else {
+        setTimeout(() => {
+          appendMessage("ai", "🎉 All questions completed! Generating your comprehensive evaluation report now...");
+          setTimeout(finishAndEvaluate, 1000);
+        }, 400);
+      }
+    }
+
+    function triggerEndInterview() {
+      if (interviewHistory.length === 0) {
+        const input = document.getElementById('answerInput');
+        const pending = input.value.trim();
+        if (pending && pending.toLowerCase() !== 'end') {
+          const q = questions[currentQuestionIndex];
+          interviewHistory.push({
+            questionNum: currentQuestionIndex + 1,
+            category: q.category,
+            question: q.question,
+            answer: pending,
+            keywords: q.keywords || [],
+            model_answer: q.model_answer || ""
+          });
+        }
+      }
+
+      appendMessage("ai", "⏹️ <em>Interview session ended by candidate. Synthesizing feedback and grading scorecard...</em>");
+      setTimeout(finishAndEvaluate, 800);
+    }
+
+    function finishAndEvaluate() {
+      const feedback = evaluateResponses(currentRole, currentLevel, interviewHistory);
+      lastGeneratedFeedback = feedback;
+
+      renderFeedbackReport(feedback);
+
+      document.getElementById('interviewSection').classList.add('hidden');
+      document.getElementById('feedbackSection').classList.remove('hidden');
+      document.getElementById('sessionStatusBadge').textContent = 'Evaluation Ready';
+      document.getElementById('sessionStatusBadge').className = 'px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-300';
+      document.getElementById('endInterviewBtn').classList.add('hidden');
+      document.getElementById('newSessionBtn').classList.remove('hidden');
+    }
+
+    function evaluateResponses(role, level, history) {
+      if (!history || history.length === 0) {
+        return {
+          overall_score: 0,
+          verdict: "Early Exit (No Answers)",
+          summary: "The interview was ended before any answers were submitted. Start a new session to complete questions and unlock actionable evaluation.",
+          scores: { technical: 0, problem_solving: 0, communication: 0, practical: 0 },
+          strengths: ["Initiated the interview workflow."],
+          improvements: ["Submit detailed responses to questions to benchmark your knowledge."],
+          breakdown: []
+        };
+      }
+
+      let totalScore = 0;
+      let techScores = [];
+      let probScores = [];
+      let commScores = [];
+      let practScores = [];
+      let strengths = [];
+      let improvements = [];
+      let breakdown = [];
+
+      history.forEach((item, idx) => {
+        const ans = item.answer.trim();
+        const words = ans.split(/\s+/).filter(Boolean);
+        const wordCount = words.length;
+        const keywords = item.keywords || [];
+
+        const lowerAns = ans.toLowerCase();
+        const matchedKw = keywords.filter(k => lowerAns.includes(k.toLowerCase()));
+        const kwRatio = matchedKw.length / Math.max(keywords.length, 1);
+
+        let qScore = 4.0;
+        let feedbackComment = "";
+        let missingComment = "";
+
+        if (wordCount < 15) {
+          qScore = 4.0;
+          feedbackComment = "Answer was too brief. Interviewers expect a structured explanation with technical reasoning.";
+          missingComment = `Key concepts to explore: ${keywords.slice(0, 3).join(', ')}.`;
+        } else if (wordCount < 40) {
+          qScore = 6.0;
+          feedbackComment = "Good initial instinct, but lacked deeper technical trade-offs and real-world considerations.";
+          missingComment = `Deepen the explanation by detailing: ${keywords.slice(0, 3).join(', ')}.`;
+        } else if (wordCount < 90) {
+          qScore = 7.5;
+          feedbackComment = "Solid explanation covering essential principles cleanly.";
+          const missing = keywords.filter(k => !matchedKw.includes(k)).slice(0, 3);
+          missingComment = missing.length > 0 ? `To reach senior level, also reference: ${missing.join(', ')}.` : "Great comprehensive answer.";
+        } else {
+          qScore = 8.8;
+          feedbackComment = "In-depth, articulate answer demonstrating high domain proficiency and practical familiarity.";
+          missingComment = "Excellent depth and structure.";
+        }
+
+        qScore += Math.min(kwRatio * 2.5, 2.0);
+        qScore = Math.min(Math.round(qScore * 10) / 10, 10.0);
+        totalScore += qScore;
+
+        const comm = Math.min(10, Math.max(4, Math.round(5 + (wordCount / 35))));
+        const tech = Math.min(10, Math.max(4, Math.round(4 + (kwRatio * 6))));
+        const prob = Math.min(10, Math.max(4, Math.round(qScore * 0.95)));
+        const pract = Math.min(10, Math.max(4, Math.round(qScore * 0.9)));
+
+        techScores.push(tech);
+        probScores.push(prob);
+        commScores.push(comm);
+        practScores.push(pract);
+
+        if (matchedKw.length > 0) {
+          strengths.push(`Q${idx + 1} (${item.category}): Effectively incorporated key domain terminology (${matchedKw.slice(0, 3).join(', ')}).`);
+        }
+        if (kwRatio < 0.35 && wordCount >= 15) {
+          improvements.push(`Q${idx + 1} (${item.category}): Missed critical industry terminology. Be sure to reference concepts such as ${keywords.slice(0, 3).join(', ')}.`);
+        } else if (wordCount < 30) {
+          improvements.push(`Q${idx + 1} (${item.category}): Answer was relatively brief. Practice using the STAR method or stating architectural trade-offs.`);
+        }
+
+        breakdown.push({
+          questionNum: idx + 1,
+          category: item.category,
+          question: item.question,
+          answer: ans,
+          score: qScore,
+          feedback: feedbackComment,
+          ideal_points: item.model_answer || missingComment
+        });
+      });
+
+      const avgScore = Math.round((totalScore / history.length) * 10) / 10;
+      let verdict = "Hire (Solid Candidate)";
+      let summary = `Solid grasp of core ${role} responsibilities with consistent domain reasoning.`;
+
+      if (avgScore >= 8.5) {
+        verdict = "Strong Hire (Exceptional Performance)";
+        summary = `Demonstrated high domain mastery, rich technical depth, and clear articulation well suited for a ${level} ${role}.`;
+      } else if (avgScore >= 7.0) {
+        verdict = "Hire (Competent & Prepared)";
+        summary = `Good practical command of essential concepts for ${role}. Minor opportunities to sharpen architectural trade-offs.`;
+      } else if (avgScore >= 5.5) {
+        verdict = "Leaning Hire / Needs Polish";
+        summary = `Has foundational knowledge for ${role}, but answers lacked sufficient technical depth, concrete examples, or structured explanations.`;
+      } else {
+        verdict = "Needs Targeted Preparation";
+        summary = `Identified fundamental conceptual gaps in ${role} topics. Dedicated study and hands-on project practice recommended.`;
+      }
+
+      if (strengths.length === 0) {
+        strengths.push("Demonstrated readiness to engage with challenging technical questions under realistic interview pacing.");
+      }
+      if (improvements.length === 0) {
+        improvements.push("Continue practicing high-concurrency or edge-case design questions to elevate to staff/principal level.");
+      }
+
+      const avg = arr => Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
+
+      return {
+        overall_score: avgScore,
+        verdict: verdict,
+        summary: summary,
+        scores: {
+          technical: avg(techScores),
+          problem_solving: avg(probScores),
+          communication: avg(commScores),
+          practical: avg(practScores)
+        },
+        strengths: strengths.slice(0, 4),
+        improvements: improvements.slice(0, 4),
+        breakdown: breakdown
+      };
+    }
+
+    function renderFeedbackReport(fb) {
+      document.getElementById('reportTitle').textContent = `Interview Evaluation: ${currentRole}`;
+      document.getElementById('reportMeta').textContent = `Target Role: ${currentRole} | Seniority: ${currentLevel} | Evaluated Questions: ${fb.breakdown.length}`;
+      document.getElementById('reportSummary').textContent = fb.summary;
+      document.getElementById('overallScoreDisplay').textContent = `${fb.overall_score}`;
+
+      const vb = document.getElementById('verdictBadge');
+      vb.textContent = fb.verdict;
+      if (fb.overall_score >= 8.0) {
+        vb.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 bg-emerald-100 text-emerald-800 border border-emerald-300';
+      } else if (fb.overall_score >= 6.0) {
+        vb.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 bg-blue-100 text-blue-800 border border-blue-300';
+      } else {
+        vb.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 bg-amber-100 text-amber-800 border border-amber-300';
+      }
+
+      const pillarContainer = document.getElementById('pillarContainer');
+      pillarContainer.innerHTML = '';
+      const pillarLabels = {
+        technical: 'Technical Depth',
+        problem_solving: 'Problem Solving',
+        communication: 'Communication',
+        practical: 'Practical Experience'
+      };
+
+      for (const [key, val] of Object.entries(fb.scores)) {
+        const col = document.createElement('div');
+        col.className = 'bg-slate-50 p-3 rounded-xl border border-slate-200';
+        col.innerHTML = `
+          <div class="flex justify-between items-center text-xs mb-1.5">
+            <span class="font-medium text-slate-500">${pillarLabels[key] || key}</span>
+            <span class="font-bold text-slate-800">${val}/10</span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+            <div class="bg-blue-600 h-1.5 rounded-full" style="width: ${val * 10}%"></div>
+          </div>
+        `;
+        pillarContainer.appendChild(col);
+      }
+
+      document.getElementById('strengthsList').innerHTML = fb.strengths.map(s => `
+        <li class="flex items-start gap-2.5">
+          <span class="text-emerald-500 font-bold mt-0.5">&check;</span>
+          <span class="leading-relaxed">${s}</span>
+        </li>
+      `).join('');
+
+      document.getElementById('improvementsList').innerHTML = fb.improvements.map(imp => `
+        <li class="flex items-start gap-2.5">
+          <span class="text-amber-500 font-bold mt-0.5">&#9650;</span>
+          <span class="leading-relaxed">${imp}</span>
+        </li>
+      `).join('');
+
+      document.getElementById('questionsBreakdownContainer').innerHTML = fb.breakdown.map(item => `
+        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-100 text-blue-800">Q${item.questionNum} &bull; ${item.category}</span>
+            </div>
+            <span class="text-xs font-bold px-2.5 py-0.5 rounded-full ${item.score >= 7.5 ? 'bg-emerald-100 text-emerald-800' : (item.score >= 5 ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800')}">
+              Score: ${item.score}/10
+            </span>
+          </div>
+
+          <div>
+            <div class="text-xs font-semibold text-slate-500">Question:</div>
+            <div class="text-sm font-medium text-slate-800 mt-0.5">${item.question}</div>
+          </div>
+
+          <div>
+            <div class="text-xs font-semibold text-blue-600">Your Answer:</div>
+            <div class="text-xs bg-white p-3 rounded-lg border border-slate-200 text-slate-800 mt-0.5 whitespace-pre-wrap leading-relaxed">${item.answer}</div>
+          </div>
+
+          <div>
+            <div class="text-xs font-semibold text-amber-600">Interviewer Assessment:</div>
+            <div class="text-xs text-slate-600 mt-0.5">${item.feedback}</div>
+          </div>
+
+          <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <div class="text-[12px] font-bold text-emerald-800 uppercase tracking-wider">Model Exemplary Concept:</div>
+            <div class="text-xs text-emerald-900 mt-1 leading-relaxed">${item.ideal_points}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function resetToSetup() {
+      document.getElementById('setupSection').classList.remove('hidden');
+      document.getElementById('interviewSection').classList.add('hidden');
+      document.getElementById('feedbackSection').classList.add('hidden');
+      document.getElementById('sessionStatusBadge').classList.add('hidden');
+      document.getElementById('endInterviewBtn').classList.add('hidden');
+      document.getElementById('newSessionBtn').classList.add('hidden');
+    }
+
+    function downloadReport() {
+      if (!lastGeneratedFeedback) return;
+      const fb = lastGeneratedFeedback;
+      let md = `# Candidate Evaluation Report: ${currentRole} (${currentLevel})\n\n`;
+      md += `- **Date**: ${new Date().toLocaleString()}\n`;
+      md += `- **Overall Score**: ${fb.overall_score} / 10.0\n`;
+      md += `- **Verdict**: ${fb.verdict}\n`;
+      md += `- **Summary**: ${fb.summary}\n\n`;
+      
+      md += `## Performance Pillars\n`;
+      for (const [k, v] of Object.entries(fb.scores)) {
+        md += `- **${k.replace('_', ' ').toUpperCase()}**: ${v}/10\n`;
+      }
+
+      md += `\n## Key Strengths\n`;
+      fb.strengths.forEach(s => { md += `- ${s}\n`; });
+
+      md += `\n## Areas to Improve\n`;
+      fb.improvements.forEach(imp => { md += `- ${imp}\n`; });
+
+      md += `\n## Question-by-Question Breakdown\n\n`;
+      fb.breakdown.forEach(b => {
+        md += `### Question ${b.questionNum}: ${b.category}\n`;
+        md += `**Question**: ${b.question}\n\n`;
+        md += `**Your Answer**: ${b.answer}\n\n`;
+        md += `**Score**: ${b.score}/10\n\n`;
+        md += `**Critique**: ${b.feedback}\n\n`;
+        md += `**Model Concept**: ${b.ideal_points}\n\n---\n\n`;
+      });
+
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `interview_evaluation_${currentRole.replace(/[^a-zA-Z0-9]/g, '_')}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
+
